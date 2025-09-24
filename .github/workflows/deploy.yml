@@ -1,0 +1,95 @@
+name: Deploy WordPress Server + Monitoring Stack
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Web Server and Run Setup Script
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.WEB_HOST }}
+          username: ${{ vars.UBUNTU_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "---- Deploying latest code to web server ----"
+            cd /home/${{ vars.UBUNTU_USER }}
+
+            if [ -d "${{ github.event.repository.name }}" ]; then
+              echo "Directory exists, pulling latest changes..."
+              cd ${{ github.event.repository.name }}
+              git pull
+            else
+              echo "Directory not found, cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git
+              cd ${{ github.event.repository.name }}
+            fi
+
+            chmod +x scripts/server_setup.sh scripts/filebeat_node_exporter_setup.sh
+            ELK_SERVER_IP=${{ vars.ELK_HOST }}
+            ./scripts/filebeat_node_exporter_setup.sh
+            ./scripts/server_setup.sh
+            
+  elk-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup ELK Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.ELK_HOST }}
+          username: ${{ vars.CENTOS_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "---- Deploying latest code to elk server ----"
+            cd /home/${{ vars.CENTOS_USER }}
+
+            if [ -d "${{ github.event.repository.name }}" ]; then
+              echo "Directory exists, pulling latest changes..."
+              cd ${{ github.event.repository.name }}
+              git pull
+            else
+              echo "Directory not found, cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git
+              cd ${{ github.event.repository.name }}
+            fi
+
+            chmod +x scripts/elk_setup.sh
+            ./scripts/elk_setup.sh
+
+  monitoring-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Monitoring Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.MONITORING_HOST }}
+          username: ${{ vars.UBUNTU_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "---- Deploying latest code to monitoring server ----"
+            cd /home/${{ vars.UBUNTU_USER }}
+
+            if [ -d "${{ github.event.repository.name }}" ]; then
+              echo "Directory exists, pulling latest changes..."
+              cd ${{ github.event.repository.name }}
+              git pull
+            else
+              echo "Directory not found, cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git
+              cd ${{ github.event.repository.name }}
+            fi
+
+            chmod +x scripts/prometheus_grafana_setup.sh
+            WEB_SERVER_IP=${{ vars.WEB_HOST }} ./scripts/prometheus_grafana_setup.sh
