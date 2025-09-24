@@ -3,6 +3,8 @@ set -e
 
 echo "---- Updating system ----"
 sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y software-properties-common
+
 
 echo "---- Installing Prometheus ----"
 cd /tmp
@@ -36,6 +38,14 @@ sudo systemctl enable prometheus
 sudo systemctl start prometheus
 
 echo "---- Installing Grafana ----"
+# Add Grafana's official GPG key
+sudo apt install -y gnupg2 curl
+curl -fsSL https://packages.grafana.com/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/grafana-archive-keyring.gpg
+
+# Add Grafana APT repository
+echo "deb [signed-by=/usr/share/keyrings/grafana-archive-keyring.gpg] https://packages.grafana.com/oss/deb stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+
+sudo apt update
 sudo apt install -y grafana
 sudo systemctl enable grafana-server
 sudo systemctl start grafana-server
