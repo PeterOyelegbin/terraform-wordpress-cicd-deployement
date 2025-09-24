@@ -53,6 +53,8 @@ jobs:
             echo "---- Deploying latest code to elk server ----"
             cd /home/${{ vars.CENTOS_USER }}
 
+            sudo yum install git
+
             if [ -d "${{ github.event.repository.name }}" ]; then
               echo "Directory exists, pulling latest changes..."
               cd ${{ github.event.repository.name }}
@@ -80,6 +82,8 @@ jobs:
           script: |
             echo "---- Deploying latest code to monitoring server ----"
             cd /home/${{ vars.UBUNTU_USER }}
+
+
 
             if [ -d "${{ github.event.repository.name }}" ]; then
               echo "Directory exists, pulling latest changes..."
