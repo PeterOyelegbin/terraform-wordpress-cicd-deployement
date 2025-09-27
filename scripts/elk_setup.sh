@@ -2,16 +2,33 @@
 set -e
 
 echo "---- Updating system ----"
-sudo yum update -y
+sudo yum update -y || sudo dnf update -y
 
-echo "---- Installing Docker ----"
-sudo yum install -y yum-utils
-sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-sudo yum install -y docker-ce docker-ce-cli containerd.io
+echo "---- Detecting OS ----"
+if grep -qi "Amazon Linux release 2" /etc/system-release; then
+    echo "Amazon Linux 2 detected"
+    sudo amazon-linux-extras enable docker
+    sudo yum install -y docker
+elif grep -qi "Amazon Linux release 2023" /etc/system-release; then
+    echo "Amazon Linux 2023 detected"
+    sudo dnf install -y docker
+elif grep -qi "CentOS" /etc/system-release || grep -qi "Red Hat" /etc/system-release; then
+    echo "CentOS/RHEL detected"
+    sudo yum install -y yum-utils
+    sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    sudo yum install -y docker-ce docker-ce-cli containerd.io
+else
+    echo "Unsupported OS. Please install Docker manually."
+    exit 1
+fi
+
+echo "---- Starting Docker ----"
 sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
 
 echo "---- Installing Docker Compose ----"
-sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" \
+    -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
 echo "---- Creating ELK stack ----"
