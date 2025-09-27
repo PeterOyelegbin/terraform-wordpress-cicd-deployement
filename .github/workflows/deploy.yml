@@ -85,6 +85,7 @@ jobs:
             if [ -d "${{ github.event.repository.name }}" ]; then
               echo "Directory exists, pulling latest changes..."
               cd ${{ github.event.repository.name }}
+              git reset --hard
               git pull
             else
               echo "Directory not found, cloning repository..."
