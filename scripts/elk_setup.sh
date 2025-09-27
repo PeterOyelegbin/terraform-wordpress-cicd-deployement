@@ -28,7 +28,6 @@ sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
 
 echo "---- Installing Docker Compose v2 ----"
-sudo rm -f /usr/local/bin/docker-compose
 sudo mkdir -p /usr/local/lib/docker/cli-plugins
 sudo curl -SL https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64 \
     -o /usr/local/lib/docker/cli-plugins/docker-compose
@@ -74,5 +73,5 @@ output {
 EOF
 
 echo "---- Starting ELK stack ----"
-docker-compose up -d
+docker compose up -d
 echo "✅ ELK running on ports 9200, 5044, 5601"
