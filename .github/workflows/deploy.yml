@@ -8,11 +8,9 @@ on:
 jobs:
   web-server:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Deploy to Web Server and Run Setup Script
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -39,8 +37,8 @@ jobs:
             ./scripts/server_setup.sh
             
   elk-server:
+    needs: web-server
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Setup ELK Server
@@ -69,8 +67,8 @@ jobs:
             ./scripts/elk_setup.sh
 
   monitoring-server:
+    needs: elk-server
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Setup Monitoring Server
@@ -82,8 +80,6 @@ jobs:
           script: |
             echo "---- Deploying latest code to monitoring server ----"
             cd /home/${{ vars.UBUNTU_USER }}
-
-
 
             if [ -d "${{ github.event.repository.name }}" ]; then
               echo "Directory exists, pulling latest changes..."
