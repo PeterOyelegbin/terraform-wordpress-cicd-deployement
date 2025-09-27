@@ -25,7 +25,6 @@ fi
 
 echo "---- Starting Docker ----"
 sudo systemctl enable --now docker
-sudo usermod -aG docker $USER
 
 echo "---- Installing Docker Compose v2 ----"
 sudo mkdir -p /usr/local/lib/docker/cli-plugins
@@ -37,7 +36,6 @@ echo "---- Creating ELK stack ----"
 mkdir -p ~/elk && cd ~/elk
 
 cat <<EOF > docker-compose.yml
-version: '3'
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0

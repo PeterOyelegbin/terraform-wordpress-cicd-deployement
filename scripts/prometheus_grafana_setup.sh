@@ -8,9 +8,9 @@ sudo apt install -y software-properties-common
 
 echo "---- Installing Prometheus ----"
 cd /tmp
-wget https://github.com/prometheus/prometheus/releases/download/v2.55.0/prometheus-2.55.0.linux-amd64.tar.gz
-tar xvf prometheus-2.55.0.linux-amd64.tar.gz
-sudo mv prometheus-2.55.0.linux-amd64 /opt/prometheus
+wget -q https://github.com/prometheus/prometheus/releases/download/v2.55.0/prometheus-2.55.0.linux-amd64.tar.gz
+sudo mkdir -p /opt/prometheus
+sudo tar -xvzf prometheus-2.55.0.linux-amd64.tar.gz -C /opt/prometheus --strip-components=1
 
 cat <<EOF | sudo tee /opt/prometheus/prometheus.yml
 global:
@@ -27,15 +27,20 @@ Description=Prometheus
 After=network.target
 
 [Service]
-ExecStart=/opt/prometheus/prometheus --config.file=/opt/prometheus/prometheus.yml
+User=nobody
+WorkingDirectory=/opt/prometheus
+ExecStart=/opt/prometheus/prometheus --config.file=/opt/prometheus/prometheus.yml --storage.tsdb.path=/opt/prometheus/data
 Restart=always
+
 [Install]
 WantedBy=multi-user.target
 EOF
 
+sudo mkdir -p /opt/prometheus/data
+sudo chown -R nobody:nogroup /opt/prometheus
 sudo systemctl daemon-reload
 sudo systemctl enable prometheus
-sudo systemctl start prometheus
+sudo systemctl restart prometheus
 
 echo "---- Installing Grafana ----"
 # Add Grafana's official GPG key
