@@ -13,9 +13,11 @@ if [[ "$ID" == "amzn" && "$VERSION_ID" == "2" ]]; then
 elif [[ "$ID" == "amzn" && "$VERSION_ID" == "2023" ]]; then
     echo "Amazon Linux 2023 detected"
     sudo dnf install -y docker
+
+    echo "---- Installing Docker Compose v2 ----"
     sudo mkdir -p /usr/local/lib/docker/cli-plugins
     sudo curl -SL https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64 \
-      -o /usr/local/lib/docker/cli-plugins/docker-compose
+        -o /usr/local/lib/docker/cli-plugins/docker-compose
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 elif [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
     echo "CentOS/RHEL detected"
