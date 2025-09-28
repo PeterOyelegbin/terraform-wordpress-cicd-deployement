@@ -18,7 +18,7 @@ By combining automation, CI/CD, observability, and cloud infrastructure, this pr
 
 
 ## 🏗 Architecture Diagram
-```mermaid
+```
                  ┌─────────────────────────┐
                  │      GitHub Repo        │
                  │  (Code + CI/CD via GA)  │
@@ -107,7 +107,7 @@ By combining automation, CI/CD, observability, and cloud infrastructure, this pr
 ## ✅ Testing & Verification
 - Push a code change → GitHub Actions → Setup servers and deploys WordPress site updates automatically.
 - Visit Kibana (http://<elk-ip>:5601) → Logs from Nginx appear.
-- Visit Prometheus (http://<pg-ip>:9090) → Execute command to view grapg metrics.
+- Visit Prometheus (http://<pg-ip>:9090) → Execute command to view graph metrics.
 - Visit Grafana (http://<pg-ip>:3000) → Add Prometheus to Grafana as a data source.
 - Create dashboards for CPU, Memory, Disk, and Requests.
 - View CPU/Memory/Web Requests metrics update in real-time.
