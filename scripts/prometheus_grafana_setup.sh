@@ -14,8 +14,12 @@ sudo tar -xvzf prometheus-2.55.0.linux-amd64.tar.gz -C /opt/prometheus --strip-c
 
 cat <<EOF | sudo tee /opt/prometheus/prometheus.yml
 global:
+  # How frequently to scrape targets by default.
   scrape_interval: 15s
+
+# A list of scrape configurations.
 scrape_configs:
+  # The job name assigned to scraped metrics by default.
   - job_name: "node_exporter"
     static_configs:
       - targets: ["${WEB_SERVER_IP}:9100"]
