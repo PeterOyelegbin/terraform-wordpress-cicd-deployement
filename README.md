@@ -18,6 +18,7 @@ By combining automation, CI/CD, observability, and cloud infrastructure, this pr
 
 
 ## 🏗 Architecture Diagram
+```mermaid
                  ┌─────────────────────────┐
                  │      GitHub Repo        │
                  │  (Code + CI/CD via GA)  │
@@ -46,7 +47,7 @@ By combining automation, CI/CD, observability, and cloud infrastructure, this pr
                    │     AWS RDS MySQL   │
                    │   Database Backend  │
                    └─────────────────────┘
-
+```
 
 ## 🚀 Project Setup
 1. Infrastructure Setup
@@ -110,21 +111,6 @@ By combining automation, CI/CD, observability, and cloud infrastructure, this pr
 - Visit Grafana (http://<pg-ip>:3000) → Add Prometheus to Grafana as a data source.
 - Create dashboards for CPU, Memory, Disk, and Requests.
 - View CPU/Memory/Web Requests metrics update in real-time.
-
-
-## 📂 Repository Structure
-.
-├── .github/
-│   └── workflows/
-│       └── deploy.yml                      # GitHub Actions workflow
-├── scripts/
-│   ├── elk_setup.sh                        # Web server automation script
-│   ├── filebeat_node_exporter_setup.sh     # Web server automation script
-│   ├── prometheus_grafana_setup.sh         # Web server automation script
-│   ├── server_setup.sh                     # Web server automation script
-├── index.php                               # Test PHP file
-├── wordpress/                              # WordPress source files
-└── README.md                               # Project documentation
 
 
 ## 🌟 Key DevOps Skills Demonstrated
