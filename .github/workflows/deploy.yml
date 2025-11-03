@@ -1,97 +1,110 @@
-name: Deploy WordPress Server + Monitoring Stack
+name: Deploy to Staging and Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [ dev, main ]
 
 jobs:
-  web-server:
+  deploy:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - branch: dev
+            environment: staging
+            server-host: ${{ secrets.STAGING_IP }}
+            server-username: ${{ secrets.SERVER_USER }}
+            server-ssh-key: ${{ secrets.SSH_PUBLIC_KEY }}
+            webhook-url: ${{ secrets.STAGING_SLACK_WEBHOOK_URL }}
+          - branch: main
+            environment: production
+            server-host: ${{ secrets.PROD_IP }}
+            server-username: ${{ secrets.SERVER_USER }}
+            server-ssh-key: ${{ secrets.SSH_PUBLIC_KEY }}
+            webhook-url: ${{ secrets.PRODUCTION_SLACK_WEBHOOK_URL }}
+    
+    environment: ${{ matrix.environment }}
+    
+    # Only run for the specific branch that triggered the workflow
+    if: github.ref == 'refs/heads/${{ matrix.branch }}'
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Deploy to Web Server and Run Setup Script
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.WEB_HOST }}
-          username: ${{ vars.UBUNTU_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo "---- Deploying latest code to web server ----"
-            cd /home/${{ vars.UBUNTU_USER }}
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-            if [ -d "${{ github.event.repository.name }}" ]; then
-              echo "Directory exists, pulling latest changes..."
-              cd ${{ github.event.repository.name }}
-              git pull
-            else
-              echo "Directory not found, cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git
-              cd ${{ github.event.repository.name }}
-            fi
+    - name: Detect environment and branch
+      run: |
+        echo "🎯 Deployment Target: ${{ matrix.environment }}"
+        echo "🌿 Branch: ${{ github.ref }}"
+        echo "🏷️  Git SHA: ${{ github.sha }}"
 
-            chmod +x scripts/server_setup.sh scripts/filebeat_node_exporter_setup.sh
-            ELK_SERVER_IP=${{ vars.ELK_HOST }}
-            ./scripts/filebeat_node_exporter_setup.sh
-            ./scripts/server_setup.sh
-            
-  elk-server:
-    needs: web-server
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup ELK Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.ELK_HOST }}
-          username: ${{ vars.CENTOS_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo "---- Deploying latest code to elk server ----"
-            cd /home/${{ vars.CENTOS_USER }}
+    - name: Deploy to ${{ matrix.environment }}
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ matrix.server-host }}
+        username: ${{ matrix.server-username }}
+        key: ${{ matrix.server-ssh-key }}
+        script: |
+          set -e  # Exit on error
+          
+          echo "🚀 Deploying to ${{ matrix.environment }} server..."
+          echo "📝 Branch: ${{ github.ref }}"
+          echo "🔑 Commit: ${{ github.sha }}"
+          
+          # Install nginx if not present
+          apt-get update
+          apt-get install -y nginx
+          systemctl enable nginx
+          systemctl start nginx
 
-            sudo yum install git -y
+          # Create backup with environment and timestamp
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          sudo cp -r /var/www/html /var/www/html.backup.${{ matrix.environment }}.$TIMESTAMP 2>/dev/null || true
+          
+          # Deploy new files
+          sudo rm -rf /var/www/html/*
+          sudo mkdir -p /var/www/html
+          sudo cp -r frontend/* /var/www/html/
+          
+          # Set permissions
+          sudo chown -R www-data:www-data /var/www/html
+          sudo chmod -R 755 /var/www/html
+          
+          # Create deployment info file
+          echo "Environment: ${{ matrix.environment }}" | sudo tee /var/www/html/deployment-info.txt
+          echo "Branch: ${{ github.ref }}" | sudo tee -a /var/www/html/deployment-info.txt
+          echo "Commit: ${{ github.sha }}" | sudo tee -a /var/www/html/deployment-info.txt
+          echo "Deployed at: $(date)" | sudo tee -a /var/www/html/deployment-info.txt
+          
+          # Test and reload nginx
+          sudo nginx -t
+          sudo systemctl reload nginx
+          
+          echo "✅ ${{ matrix.environment }} deployment completed successfully!"
+          echo "📁 Backup created: /var/www/html.backup.${{ matrix.environment }}.$TIMESTAMP"
 
-            if [ -d "${{ github.event.repository.name }}" ]; then
-              echo "Directory exists, pulling latest changes..."
-              cd ${{ github.event.repository.name }}
-              git reset --hard
-              git pull
-            else
-              echo "Directory not found, cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git
-              cd ${{ github.event.repository.name }}
-            fi
-
-            chmod +x scripts/elk_setup.sh
-            ./scripts/elk_setup.sh
-
-  monitoring-server:
-    needs: elk-server
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Monitoring Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.MONITORING_HOST }}
-          username: ${{ vars.UBUNTU_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo "---- Deploying latest code to monitoring server ----"
-            cd /home/${{ vars.UBUNTU_USER }}
-
-            if [ -d "${{ github.event.repository.name }}" ]; then
-              echo "Directory exists, pulling latest changes..."
-              cd ${{ github.event.repository.name }}
-              git reset --hard
-              git pull
-            else
-              echo "Directory not found, cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git
-              cd ${{ github.event.repository.name }}
-            fi
-
-            chmod +x scripts/prometheus_grafana_setup.sh
-            WEB_SERVER_IP=${{ vars.WEB_HOST }} ./scripts/prometheus_grafana_setup.sh
+    - name: Verify ${{ matrix.environment }} deployment
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ matrix.server-host }}
+        username: ${{ matrix.server-username }}
+        key: ${{ matrix.server-ssh-key }}
+        script: |
+          # Verify nginx is running
+          if systemctl is-active --quiet nginx; then
+            echo "✅ Nginx is running on ${{ matrix.environment }}"
+          else
+            echo "❌ Nginx is not running on ${{ matrix.environment }}"
+            exit 1
+          fi
+          
+          # Verify files are deployed
+          if [ -n "$(ls -A /var/www/html/)" ]; then
+            echo "✅ Files are deployed successfully to ${{ matrix.environment }}"
+            echo "📄 Deployment info:"
+            cat /var/www/html/deployment-info.txt || echo "No deployment info file"
+          else
+            echo "❌ No files found in /var/www/html/ on ${{ matrix.environment }}"
+            exit 1
+          fi
+          
